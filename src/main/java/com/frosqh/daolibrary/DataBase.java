@@ -12,13 +12,28 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Define the database and the main access to it
+ * @author Frosqh
+ * @since 0.1.0
+ */
 public class DataBase {
 
+    /**
+     * The list of model the database should be using
+     * @since 0.1.0
+     */
     public static final List<Class<? extends Model>> models = new ArrayList<>();
 
     private static Logger logger = LogManager.getLogger();
 
 
+    /**
+     * Create the database (if needed) containing the table corresponding to the models
+     * /!\ Be aware that the database will be recreated iff the database file is not found
+     * @param name Filename of the database
+     * @throws ConnectionNotInitException if ConnectionSQLite is not initialized
+     */
     public DataBase(String name) throws ConnectionNotInitException {
         File db = new File(name);
         if (!db.exists()){
@@ -46,6 +61,12 @@ public class DataBase {
         }
     }
 
+    /**
+     * Provide a template to create a table
+     * @param name The name of the table
+     * @param Table The fields of the table
+     * @return The completed request
+     */
     private String createTable(String name, String Table){
         return "CREATE TABLE IF NOT EXISTS " + name + "(\n"
                 +"id INTEGER PRIMARY KEY, \n"
