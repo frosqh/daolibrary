@@ -13,8 +13,4 @@ public abstract class Model {
     public int getId() {
         return id;
     }
-
-    static void printFields(){
-
-    }
 }

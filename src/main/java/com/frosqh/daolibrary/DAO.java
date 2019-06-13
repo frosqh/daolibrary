@@ -8,6 +8,8 @@ import org.apache.logging.log4j.Logger;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DAO<M extends Model> {
 
@@ -55,7 +57,7 @@ public class DAO<M extends Model> {
                     id = result.getInt(1)+ 1;
                 stm.close();
             } catch (SQLException e){
-                e.printStackTrace();
+                logger.log(Level.ERROR, e);
             }
 
             Field[] fields = getFields();
@@ -68,7 +70,6 @@ public class DAO<M extends Model> {
 
             values = values.substring(0,values.length()-1)+")";
             request = request.substring(0,request.length()-1)+ ") VALUES "+values;
-            System.out.println(request);
 
             int i = 2;
             try  (PreparedStatement prepare = connect.prepareStatement(request)) {
@@ -84,13 +85,76 @@ public class DAO<M extends Model> {
                 prepare.close();
                 return find(id);
             } catch (IllegalAccessException e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e);
         }
         return null;
     }
+
+    public void delete(M obj){
+        try (Statement stm = connect.createStatement()){
+            String del = getDeleteRequest(obj.getId());
+            stm.executeUpdate(del);
+        } catch (SQLException e) {
+            logger.log(Level.ERROR, e);
+        }
+    }
+
+    public void delete(int id){
+        try (Statement stm = connect.createStatement()){
+            String del = getDeleteRequest(id);
+            stm.executeUpdate(del);
+        } catch (SQLException e) {
+            logger.log(Level.ERROR, e);
+        }
+    }
+
+    public List<M> getList(){
+        List<M> list = new ArrayList<>();
+        try (Statement stm = connect.createStatement()){
+            String request = "SELECT id FROM "+tableName;
+            System.out.println(request);
+            try (ResultSet res = stm.executeQuery(request)){
+                while (res.next())
+                    list.add(find(res.getInt("id")));
+                stm.close();
+                return list;
+            }
+        } catch (SQLException e) {
+            logger.log(Level.ERROR, e);
+        }
+        return null;
+    }
+
+    public List<M> filter(String... args){
+        String where;
+        {
+            StringBuilder whereB = new StringBuilder();
+            boolean b = true;
+            for (String s : args){
+                whereB.append(!b?"'":"").append(s).append(!b?"'":"").append(b?"=":" AND ");
+                b=!b;
+            }
+            where = whereB.toString().substring(0,whereB.lastIndexOf("A")-1);
+            List<M> list = new ArrayList<>();
+            try (Statement stm = connect.createStatement()){
+                String request = "SELECT id FROM "+tableName+" WHERE "+where;
+                try (ResultSet result = stm.executeQuery(request)) {
+                    while (result.next())
+                        list.add(find(result.getInt("id")));
+                    stm.close();
+                    return list;
+                }
+            } catch (SQLException e) {
+                logger.log(Level.ERROR, e);
+            }
+        }
+        return null;
+    }
+
+
 
     private String getFindRequest(int id){
         return "SELECT * FROM "+tableName+" WHERE id = "+id;
@@ -118,9 +182,9 @@ public class DAO<M extends Model> {
 
     private M newObject(int id){
         try {
-            return (M) tmp.getClass().getDeclaredConstructor(int.class).newInstance(0);
+            return (M) tmp.getClass().getDeclaredConstructor(int.class).newInstance(id);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e);
         };
         return null;
     }

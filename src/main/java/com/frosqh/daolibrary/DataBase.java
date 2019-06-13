@@ -1,5 +1,9 @@
 package com.frosqh.daolibrary;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.File;
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -11,6 +15,9 @@ import java.util.List;
 public class DataBase {
 
     public static List<Class<? extends Model>> models = new ArrayList<>();
+
+    private static Logger logger = LogManager.getLogger();
+
 
     public DataBase(String name) throws ConnectionNotInitException {
         File db = new File(name);
@@ -39,7 +46,7 @@ public class DataBase {
                 }
                 stm.close();
             } catch (SQLException e) {
-                //TODO Error Handler
+                logger.log(Level.ERROR, e);
             }
         }
     }
