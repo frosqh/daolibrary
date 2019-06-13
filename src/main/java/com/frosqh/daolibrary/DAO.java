@@ -69,7 +69,6 @@ public class DAO<M extends Model> {
                     else if (type.equals(float.class)) f.set(m, result.getFloat(f.getName()));
                     else f.set(m, result.getObject(f.getName()));
                 }
-                stm.close();
                 return m;
             }
         } catch (SQLException | IllegalAccessException e) {
@@ -92,7 +91,6 @@ public class DAO<M extends Model> {
             try (ResultSet result = stm.executeQuery(select)){
                 if (result.next())
                     id = result.getInt(1)+ 1;
-                stm.close();
             } catch (SQLException e){
                 logger.log(Level.ERROR, e);
             }
@@ -119,7 +117,6 @@ public class DAO<M extends Model> {
                     i++;
                 }
                 prepare.executeUpdate();
-                prepare.close();
                 return find(id);
             } catch (IllegalAccessException e) {
                 logger.log(Level.ERROR, e);
@@ -147,7 +144,6 @@ public class DAO<M extends Model> {
             upd = getUpdateRequest(upd, obj.getId());
             stm.executeUpdate(upd);
             obj = find(obj.getId());
-            stm.close();
             return obj;
         } catch (SQLException | IllegalAccessException e) {
             logger.log(Level.ERROR, e);
@@ -193,11 +189,9 @@ public class DAO<M extends Model> {
         List<M> list = new ArrayList<>();
         try (Statement stm = connect.createStatement()){
             String request = "SELECT id FROM "+tableName;
-            System.out.println(request);
             try (ResultSet res = stm.executeQuery(request)){
                 while (res.next())
                     list.add(find(res.getInt("id")));
-                stm.close();
                 return list;
             }
         } catch (SQLException e) {
@@ -228,7 +222,6 @@ public class DAO<M extends Model> {
                 try (ResultSet result = stm.executeQuery(request)) {
                     while (result.next())
                         list.add(find(result.getInt("id")));
-                    stm.close();
                     return list;
                 }
             } catch (SQLException e) {
@@ -240,9 +233,9 @@ public class DAO<M extends Model> {
 
 
     /**
-     *
-     * @param id
-     * @return
+     * Provide a template of a SELECT * FROM request
+     * @param id The id of the entry to request
+     * @return The request completed
      * @since 0.1.0
      */
     private String getFindRequest(int id){
@@ -250,8 +243,8 @@ public class DAO<M extends Model> {
     }
 
     /**
-     *
-     * @return
+     * Provide a template for getting the max id of a table
+     * @return The request completed
      * @since 0.1.0
      */
     private String getMaxRequest(){
@@ -259,27 +252,39 @@ public class DAO<M extends Model> {
     }
 
     /**
-     *
-     * @param id
-     * @return
+     * Provide a template for a delete request
+     * @param id The id of the entry to delete
+     * @return The request completed
      * @since 0.1.0
      */
     private String getDeleteRequest(int id){
         return "DELETE FROM "+tableName+" WHERE id = "+id;
     }
 
-    private String getDeleteForeignRequest(String tableName, int id){
-        return "DELETE FROM "+tableName+" WHERE "+tableName+"_id = "+id;
-    }
-
+    /**
+     * Provide a template for an update request
+     * @param upd The full update string
+     * @param id The id of the entry to update
+     * @return The request completed
+     * @since 0.1.0
+     */
     private String getUpdateRequest(String upd, int id){
         return "UPDATE "+tableName+" SET "+upd+" WHERE id = "+id;
     }
 
+    /**
+     * Return the array of public fields contained in the model
+     * @since 0.1.0
+     */
     private Field[] getFields(){
-        return tmp.getClass().getDeclaredFields();
+        return tmp.getClass().getFields();
     }
 
+    /**
+     * Create a new model of class M
+     * @param id The id to create the new model with
+     * @return A new model
+     */
     private M newObject(int id){
         try {
             return (M) tmp.getClass().getDeclaredConstructor(int.class).newInstance(id);
@@ -289,6 +294,11 @@ public class DAO<M extends Model> {
         return null;
     }
 
+    /**
+     * Create a new DAO
+     * @param clas The model class the DAO should be for
+     * @return A new DAO initialized with the class name as tableName and the class type as generic type
+     */
     public static DAO construct(Class<? extends Model> clas) {
         try {
             return new DAO<>(clas.getSimpleName().toLowerCase(), clas.cast( clas.getDeclaredConstructor(int.class).newInstance(0)));

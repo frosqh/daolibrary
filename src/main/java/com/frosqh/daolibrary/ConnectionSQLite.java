@@ -29,6 +29,8 @@ public class ConnectionSQLite {
      */
     private static Connection connect;
 
+    private ConnectionSQLite(){};
+
     /**
      * Set the database file's name
      * @param name Name to use from now on

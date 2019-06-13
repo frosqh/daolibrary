@@ -14,7 +14,7 @@ import java.util.List;
 
 public class DataBase {
 
-    public static List<Class<? extends Model>> models = new ArrayList<>();
+    public static final List<Class<? extends Model>> models = new ArrayList<>();
 
     private static Logger logger = LogManager.getLogger();
 
@@ -23,12 +23,9 @@ public class DataBase {
         File db = new File(name);
         if (!db.exists()){
             Connection connect = ConnectionSQLite.getInstance();
-            Statement stm = null;
 
-            try {
-                stm = connect.createStatement();
+            try(Statement stm = connect.createStatement()) {
                 for (Class<? extends Model> c : models){
-                    System.out.println(c);
                     String TABLE ="";
                     for (Field f : c.getDeclaredFields()){
                         TABLE+=f.getName()+" ";
@@ -41,10 +38,8 @@ public class DataBase {
                     }
                     TABLE = TABLE.substring(0, TABLE.length()-2);
                     String create = createTable(c.getSimpleName().toLowerCase(),TABLE);
-                    System.out.println(create);
                     stm.execute(create);
                 }
-                stm.close();
             } catch (SQLException e) {
                 logger.log(Level.ERROR, e);
             }
