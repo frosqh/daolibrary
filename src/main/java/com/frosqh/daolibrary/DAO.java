@@ -1,6 +1,5 @@
 package com.frosqh.daolibrary;
 
-import jdk.nashorn.internal.objects.annotations.Constructor;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,21 +10,53 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Provide necessary function to deal with database relatives to a model
+ * @param <M> Class corresponding to the model treated by the DAO
+ * @author Frosqh
+ * @since 0.1.0
+ * @version 0.1.0
+ */
 public class DAO<M extends Model> {
-
-    private M tmp;
 
     private static Logger logger = LogManager.getLogger();
 
+    /**
+     * Placeholder value used for getting the fields of the M class
+     * @since 0.1.0
+     */
+    private M tmp;
+
+    /**
+     * Instance dealing with database
+     * @since 0.1.0
+     */
     private final Connection connect = ConnectionSQLite.getInstance();
-    
+
+    /**
+     * Table name
+     * @since 0.1.0
+     */
     private String tableName;
 
-    public DAO(String tableName, M t) throws ConnectionNotInitException {
+    /**
+     * Create a new DAO based on the table name and a M object
+     * @param tableName Table's name in the database
+     * @param  t Object of type M, value don't matter (not null)
+     * @throws ConnectionNotInitException if the connection is not initialized
+     * @since 0.1.0
+     */
+    public DAO(String tableName,@NotNull M t) throws ConnectionNotInitException {
         this.tableName = tableName;
         tmp = t;
     }
-    
+
+    /**
+     * Allow to get an object linked to a certain id from the database
+     * @param id the identifier (primary key) of the object to find in the database
+     * @return The model referring to the given id
+     * @since 0.1.0
+     */
     public M find(int id){
         try (Statement stm = connect.createStatement()){
             String select = getFindRequest(id);
@@ -47,6 +78,12 @@ public class DAO<M extends Model> {
         return null;
     }
 
+    /**
+     * Create an entry in the database corresponding to a model
+     * @param obj The model to add to the database
+     * @return The model strictly corresponding to the one saved in database (id changed)
+     * @since 0.1.0
+     */
     public M create(M obj) {
         try (Statement stm = connect.createStatement()) {
             String select = getMaxRequest();
@@ -93,6 +130,37 @@ public class DAO<M extends Model> {
         return null;
     }
 
+    /**
+     * Update an entry in the database to match with the given model
+     * @param obj The model to update in the database <br>
+     *            &nbsp;&nbsp;&nbsp;&nbsp;Its id will be used to find the original entry
+     * @return The model updated such as saved in the database
+     * @since 0.1.0
+     */
+    public M update(M obj){
+        try (Statement stm = connect.createStatement()){
+            String upd = "";
+            for (Field f : getFields()){
+                upd+=f.getName()+" = '"+f.get(obj)+"',";
+            }
+            upd = upd.substring(0,upd.length()-1);
+            upd = getUpdateRequest(upd, obj.getId());
+            stm.executeUpdate(upd);
+            obj = find(obj.getId());
+            stm.close();
+            return obj;
+        } catch (SQLException | IllegalAccessException e) {
+            logger.log(Level.ERROR, e);
+        }
+        return null;
+    }
+
+    /**
+     * Delete an entry in the database corresponding to giver model
+     * @param obj The model to delete<br>
+     *            &nbsp;&nbsp;&nbsp;&nbsp;Its id will be to find the original entry
+     * @since 0.1.0
+     */
     public void delete(M obj){
         try (Statement stm = connect.createStatement()){
             String del = getDeleteRequest(obj.getId());
@@ -102,6 +170,11 @@ public class DAO<M extends Model> {
         }
     }
 
+    /**
+     * Delete an entry in the database corresponding to giver model
+     * @param id The id of the model to delete
+     * @since 0.1.0
+     */
     public void delete(int id){
         try (Statement stm = connect.createStatement()){
             String del = getDeleteRequest(id);
@@ -111,6 +184,11 @@ public class DAO<M extends Model> {
         }
     }
 
+    /**
+     * Return the entire list of models saved in the database
+     * @return A list of model
+     * @since 0.1.0
+     */
     public List<M> getList(){
         List<M> list = new ArrayList<>();
         try (Statement stm = connect.createStatement()){
@@ -128,6 +206,12 @@ public class DAO<M extends Model> {
         return null;
     }
 
+    /**
+     * Return the list of models saved in the database matching the parameters
+     * @param args list of parameters specifiyng the WHERE condition. <br>
+     *             For WHERE var1=val, use filter(var1,val1), and continue for more criteria
+     * @return A list fo model resulting of a SELECT * FROM table WHERE args
+     */
     public List<M> filter(String... args){
         String where;
         {
@@ -155,15 +239,31 @@ public class DAO<M extends Model> {
     }
 
 
-
+    /**
+     *
+     * @param id
+     * @return
+     * @since 0.1.0
+     */
     private String getFindRequest(int id){
         return "SELECT * FROM "+tableName+" WHERE id = "+id;
     }
 
+    /**
+     *
+     * @return
+     * @since 0.1.0
+     */
     private String getMaxRequest(){
         return "SELECT MAX(id) FROM "+tableName;
     }
 
+    /**
+     *
+     * @param id
+     * @return
+     * @since 0.1.0
+     */
     private String getDeleteRequest(int id){
         return "DELETE FROM "+tableName+" WHERE id = "+id;
     }
